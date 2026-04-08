@@ -10,6 +10,9 @@
 *.ppk
 .aws/
 .gcp/
+API-Key-Fal.ai/
+api-keys/
+*api*key*/
 
 # Python
 __pycache__/
