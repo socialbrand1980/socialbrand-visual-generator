@@ -1,0 +1,128 @@
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+.env.*.txt
+
+# API Keys & Credentials
+*.key
+*.pem
+*.ppk
+.aws/
+.gcp/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv
+.virtualenv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.project
+.pydevproject
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+*.cover
+
+# Generated Files
+*.pyc
+*.pyo
+*.egg-info
+.eggs
+
+# Temporary Files
+*.tmp
+*.temp
+*.log
+logs/
+
+# OS Files
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Brand Assets (Generated - will regenerate from API)
+brands/*/generated/
+brands/*/.DS_Store
+
+# Don't track moodboard variations (raw originals are fine)
+brands/*/moodboard/.cache/
+
+# Claude Desktop Config (local only)
+claude_desktop_config.json.local
+
+# Development Notes
+NOTES.md
+TODO_DEV.md
+SCRATCH.md
+
+# Backup Files
+*.bak
+*.backup
+*.orig
+~*
+
+# Lock Files (use requirements.txt instead)
+Pipfile.lock
+poetry.lock
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache
+.cache/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Output artifacts (videos can be large, regenerate as needed)
+*.mp4
+*.mov
+*.avi
