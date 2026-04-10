@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2bShine — Campaign Strategy Q2 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --pink:       #E8909F;
+  --pink-light: #F7D6DC;
+  --pink-pale:  #FDF2F4;
+  --pink-dark:  #C4616F;
+  --cream:      #FDFBF9;
+  --dark:       #1E1E1E;
+  --mid:        #555555;
+  --light:      #888888;
+  --white:      #FFFFFF;
+  --sage:       #7A9E74;
+  --blue:       #5580C9;
+  --orange:     #D4863C;
+  --purple:     #9076CC;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#E8DDD6;width:100vw;height:100vh;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+#progress-bar{position:fixed;top:0;left:0;height:3px;background:var(--pink);transition:width .4s ease;z-index:100;}
+.slide-wrap{width:min(1100px,96vw);height:min(660px,88vh);position:relative;overflow:hidden;border-radius:18px;box-shadow:0 28px 80px rgba(0,0,0,.18);}
+.slide{position:absolute;inset:0;background:var(--white);opacity:0;transform:translateX(48px);transition:opacity .4s ease,transform .4s ease;pointer-events:none;display:flex;flex-direction:column;}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:all;}
+.slide.exit{opacity:0;transform:translateX(-48px);}
+.nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:var(--white);padding:9px 18px;border-radius:40px;box-shadow:0 4px 24px rgba(0,0,0,.14);z-index:100;}
+.nav-btn{width:34px;height:34px;border-radius:50%;border:none;cursor:pointer;background:var(--pink-light);color:var(--pink-dark);font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.nav-btn:hover{background:var(--pink);color:white;}
+.nav-btn:disabled{opacity:.3;cursor:not-allowed;}
+.slide-counter{font-size:12px;font-weight:600;color:var(--mid);min-width:52px;text-align:center;}
+.dots{display:flex;gap:5px;align-items:center;}
+.dot{width:7px;height:7px;border-radius:4px;background:var(--pink-light);cursor:pointer;transition:all .3s;}
+.dot.active{background:var(--pink);width:20px;}
+.s-header{padding:22px 44px 0;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.s-label{font-size:10px;font-weight:700;letter-spacing:2.5px;color:var(--pink);text-transform:uppercase;white-space:nowrap;}
+.s-divider{height:1px;flex:1;background:var(--pink-light);}
+.s-num{font-size:10px;font-weight:700;color:var(--pink-light);}
+.s-body{padding:18px 44px 24px;flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.t-lg{font-family:'Playfair Display',serif;font-size:26px;line-height:1.25;color:var(--dark);}
+.t-pink{color:var(--pink);}
+.card{background:var(--cream);border-radius:12px;padding:16px 18px;border:1px solid var(--pink-light);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;flex:1;}
+.metric-row{display:flex;gap:12px;}
+.metric-card{flex:1;text-align:center;background:var(--cream);border:1px solid var(--pink-light);border-radius:14px;padding:20px 14px;}
+.metric-card.featured{background:linear-gradient(135deg,#FDE8EC,#FDF5F7);border-color:var(--pink);}
+.metric-num{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--pink-dark);line-height:1;}
+.metric-num.sm{font-size:22px;}
+.metric-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--mid);margin-top:6px;}
+.metric-sub{font-size:10px;color:var(--light);margin-top:3px;}
+.funnel-row{display:flex;align-items:center;gap:14px;padding:13px 18px;border-radius:10px;}
+.data-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.data-table th{background:var(--pink);color:white;padding:9px 13px;text-align:left;font-weight:600;font-size:11px;}
+.data-table td{padding:9px 13px;border-bottom:1px solid #F0E8EC;color:var(--dark);}
+.data-table tr:nth-child(even) td{background:var(--pink-pale);}
+.target-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.target-card{padding:14px 16px;border-radius:10px;}
+.target-card.cold{background:#EEF3FF;border-top:3px solid var(--blue);}
+.target-card.warm{background:#FFF7EC;border-top:3px solid var(--orange);}
+.target-card.hot{background:#FDF0F2;border-top:3px solid var(--pink);}
+.target-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;}
+.target-pct{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;line-height:1;margin-bottom:6px;}
+.target-desc{font-size:11.5px;color:var(--mid);line-height:1.6;}
+.cold .target-label,.cold .target-pct{color:var(--blue);}
+.warm .target-label,.warm .target-pct{color:var(--orange);}
+.hot .target-label,.hot .target-pct{color:var(--pink-dark);}
+.bm-pill{flex:1;background:var(--cream);border:1px solid var(--pink-light);border-radius:8px;padding:9px 10px;text-align:center;}
+.bm-val{font-size:13px;font-weight:700;color:var(--dark);}
+.bm-label{font-size:9.5px;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;margin-top:3px;}
+.budget-bar{display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px;}
+.b-seg{height:100%;border-radius:5px;}
+.budget-legend{display:flex;flex-wrap:wrap;gap:7px 16px;margin-top:12px;}
+.b-legend-item{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mid);}
+.b-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.timeline{display:flex;gap:0;flex:1;}
+.t-month{flex:1;padding:14px 16px;}
+.t-month:not(:last-child){border-right:1px dashed var(--pink-light);}
+.t-month-label{font-size:9.5px;font-weight:700;letter-spacing:1.5px;color:var(--pink);text-transform:uppercase;margin-bottom:6px;}
+.t-month-title{font-size:13px;font-weight:700;color:var(--dark);margin-bottom:8px;}
+.t-item{font-size:11.5px;color:var(--mid);margin-bottom:6px;padding-left:12px;position:relative;line-height:1.45;}
+.t-item::before{content:'';position:absolute;left:0;top:6px;width:5px;height:5px;border-radius:50%;background:var(--pink);}
+.pillar-card{padding:14px 16px;border-radius:10px;border-left:4px solid;}
+.pillar-card:nth-child(1){background:#FEF4F5;border-color:var(--pink);}
+.pillar-card:nth-child(2){background:#FFF8F0;border-color:var(--orange);}
+.pillar-card:nth-child(3){background:#F3F8F2;border-color:var(--sage);}
+.pillar-card:nth-child(4){background:#F3F0FF;border-color:var(--purple);}
+.pillar-pct{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;}
+.pillar-name{font-size:13px;font-weight:700;color:var(--dark);margin:3px 0;}
+.pillar-desc{font-size:11px;color:var(--mid);}
+.check-item{display:flex;align-items:flex-start;gap:12px;padding:10px 16px;background:var(--cream);border-radius:9px;border-left:3px solid var(--pink);}
+.check-icon{color:var(--sage);font-size:14px;flex-shrink:0;margin-top:1px;font-weight:700;}
+.check-text{font-size:12.5px;color:var(--dark);line-height:1.45;}
+.hook-item{display:flex;gap:12px;padding:10px 14px;background:var(--pink-pale);border-radius:9px;align-items:flex-start;}
+.hook-num{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--pink-light);line-height:1;flex-shrink:0;width:24px;}
+.hook-title{font-size:12.5px;font-weight:600;color:var(--dark);}
+.hook-sub{font-size:10.5px;color:var(--mid);margin-top:2px;}
+.prob-card{padding:18px 16px;border-radius:12px;}
+.prob-card:nth-child(1){background:#FDF0F2;}
+.prob-card:nth-child(2){background:#FFF7F0;}
+.prob-card:nth-child(3){background:#F3F8F2;}
+.cover-slide{background:linear-gradient(135deg,#FDF2F4 0%,#FDFBF9 50%,#F5EDE5 100%) !important;}
+.cover-accent{position:absolute;top:0;right:0;width:340px;height:340px;background:radial-gradient(circle,rgba(232,144,159,.14) 0%,transparent 70%);pointer-events:none;}
+.cover-stat-num{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--pink-dark);}
+.cover-stat-label{font-size:10.5px;color:var(--mid);margin-top:3px;}
+.traj-table{width:100%;border-collapse:collapse;}
+.traj-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 16px;text-align:left;}
+.traj-table td{font-size:13px;padding:12px 16px;border-bottom:1px solid #F0E8EC;}
+.traj-table .total-row td{background:var(--pink-pale);font-weight:700;color:var(--pink-dark);}
+.traj-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.ch-card{padding:16px 18px;border-radius:12px;border:1px solid var(--pink-light);}
+.ch-card.meta{background:linear-gradient(135deg,#FEF4F5,#FDF9F9);}
+.ch-card.tiktok{background:linear-gradient(135deg,#FFF9F3,#FFFCFA);}
+.ch-card.shopee{background:linear-gradient(135deg,#F3F6FF,#F9FBFF);}
+.ch-title{font-size:12px;font-weight:700;margin-bottom:10px;}
+.ch-row{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px dashed rgba(0,0,0,.06);font-size:12px;}
+.ch-row:last-child{border-bottom:none;}
+.ch-row-label{color:var(--mid);}
+.ch-row-val{font-weight:600;color:var(--dark);}
+.ch-row-val.highlight{color:var(--pink-dark);font-size:13px;}
+
+/* PERSONA STYLES */
+.persona-card{border-radius:14px;overflow:hidden;border:1px solid var(--pink-light);display:flex;flex-direction:column;height:100%;}
+.persona-header{padding:14px 16px 12px;display:flex;align-items:center;gap:12px;}
+.persona-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.persona-name{font-size:15px;font-weight:700;color:var(--dark);}
+.persona-role{font-size:10.5px;font-weight:500;margin-top:2px;}
+.persona-body{padding:0 16px 14px;flex:1;display:flex;flex-direction:column;gap:9px;}
+.persona-row{display:flex;gap:6px;align-items:flex-start;}
+.persona-row-icon{font-size:12px;flex-shrink:0;margin-top:1px;}
+.persona-row-label{font-size:10px;font-weight:700;color:var(--light);text-transform:uppercase;letter-spacing:.5px;min-width:68px;flex-shrink:0;}
+.persona-row-val{font-size:11.5px;color:var(--dark);line-height:1.5;}
+.persona-why{margin-top:4px;padding:9px 12px;border-radius:8px;font-size:11px;line-height:1.6;}
+
+/* GEO PRIORITY */
+.geo-tier{padding:12px 16px;border-radius:10px;border-left:4px solid;margin-bottom:8px;}
+.geo-tier.a{background:#FDF2F4;border-color:var(--pink);}
+.geo-tier.b{background:#FFF8F2;border-color:var(--orange);}
+.geo-tier.c{background:#F5F8FF;border-color:var(--blue);}
+.geo-tier-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+.geo-tier.a .geo-tier-label{color:var(--pink-dark);}
+.geo-tier.b .geo-tier-label{color:var(--orange);}
+.geo-tier.c .geo-tier-label{color:var(--blue);}
+.geo-cities{font-size:12.5px;font-weight:600;color:var(--dark);margin-bottom:3px;}
+.geo-reason{font-size:11px;color:var(--mid);line-height:1.5;}
+.geo-budget-badge{float:right;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:700;}
+.geo-tier.a .geo-budget-badge{background:var(--pink-pale);color:var(--pink-dark);}
+.geo-tier.b .geo-budget-badge{background:#FFF0E6;color:var(--orange);}
+.geo-tier.c .geo-budget-badge{background:#EEF2FF;color:var(--blue);}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+  body{background:#E8DDD6;overflow:auto;height:auto;justify-content:flex-start;}
+  .slide-wrap{width:100vw;height:100svh;border-radius:0;box-shadow:none;position:fixed;top:0;left:0;}
+  .slide{overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;}
+  .s-header{padding:14px 18px 0;}
+  .s-body{padding:12px 18px 80px;overflow-y:auto;overflow-x:hidden;}
+  .t-lg{font-size:20px !important;}
+
+  /* Cover slide */
+  #s1 > div[style*="padding:0 60px"]{padding:0 20px !important;}
+  #s1 .cover-accent{width:200px;height:200px;}
+  #s1 [style*="font-size:46px"]{font-size:32px !important;line-height:1.1 !important;}
+  #s1 [style*="font-size:13.5px"]{font-size:12px !important;}
+  #s1 [style*="display:flex;gap:0;border:1px solid"]{flex-wrap:wrap;width:100% !important;}
+  #s1 [style*="padding:18px 28px"]{flex:1 1 calc(50% - 1px);padding:12px 14px !important;min-width:0;}
+  #s1 [style*="font-size:24px"].cover-stat-num,.cover-stat-num{font-size:18px !important;}
+  #s1 [style*="font-size:10px;font-weight:700;letter-spacing:3px"]{font-size:9px !important;}
+  #s1 [style*="font-size:10.5px;font-weight:600;padding:4px 16px"]{font-size:9.5px !important;padding:4px 12px !important;}
+
+  /* Two-col → single col */
+  .two-col{grid-template-columns:1fr !important;gap:14px !important;}
+
+  /* 3-col grids → single col */
+  [style*="grid-template-columns:1fr 1fr 1fr"]{grid-template-columns:1fr !important;}
+  [style*="grid-template-columns: 1fr 1fr 1fr"]{grid-template-columns:1fr !important;}
+  .target-grid{grid-template-columns:1fr !important;}
+
+  /* 2-col content grids → single col */
+  [style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important;}
+
+  /* Metric row → 2-col wrap */
+  .metric-row{flex-wrap:wrap;}
+  .metric-card{flex:1 1 calc(50% - 6px);min-width:0;}
+  .metric-num{font-size:22px !important;}
+  .metric-num.sm{font-size:16px !important;}
+
+  /* Timeline → vertical */
+  .timeline{flex-direction:column;gap:0;}
+  .t-month{border-right:none !important;border-bottom:1px dashed var(--pink-light);padding:12px 0;}
+  .t-month:last-child{border-bottom:none;}
+
+  /* Tables: horizontal scroll */
+  .traj-table{font-size:11px;}
+  .traj-table th,.traj-table td{padding:8px 10px;}
+  .data-table{font-size:11px;}
+  .data-table th,.data-table td{padding:7px 10px;}
+  /* Wrap table in scrollable container via JS */
+
+  /* Pillar cards → 2-col */
+  [style*="grid-template-columns:1fr 1fr"][style*="margin-bottom:14px"]{grid-template-columns:1fr 1fr !important;}
+
+  /* Channel cards → already handled by 3-col override */
+
+  /* Funnel items */
+  .funnel-row{gap:8px;padding:10px 12px;}
+
+  /* Budget bar */
+  .budget-bar{height:12px;}
+
+  /* Cover stat box */
+  .cover-stat-num{font-size:18px;}
+
+  /* Persona body padding */
+  .persona-body{padding:0 12px 12px;}
+  .persona-row-label{min-width:56px;font-size:9.5px;}
+  .persona-row-val{font-size:11px;}
+  .persona-why{font-size:10.5px;}
+
+  /* Nav */
+  .nav{padding:7px 14px;gap:8px;bottom:14px;}
+  .nav-btn{width:30px;height:30px;font-size:14px;}
+  .slide-counter{font-size:11px;min-width:42px;}
+  .dot{width:6px;height:6px;}
+  .dot.active{width:16px;}
+
+  /* Hook items */
+  .hook-item{padding:8px 12px;}
+  .hook-title{font-size:12px;}
+
+  /* Geo */
+  .geo-budget-badge{float:none;display:inline-block;margin-bottom:4px;}
+
+  /* Check items */
+  .check-item{padding:8px 12px;}
+  .check-text{font-size:12px;}
+}
+
+@media (max-width: 480px) {
+  .s-body{padding:10px 14px 80px;}
+  .s-header{padding:12px 14px 0;}
+  .t-lg{font-size:18px !important;}
+  #s1 [style*="font-size:32px"],#s1 [style*="font-size:46px"]{font-size:26px !important;}
+  .metric-card{flex:1 1 calc(50% - 6px);}
+  .metric-num{font-size:20px !important;}
+  .metric-num.sm{font-size:14px !important;}
+  /* Pillar cards → 1-col on very small */
+  [style*="grid-template-columns:1fr 1fr"][style*="margin-bottom:14px"]{grid-template-columns:1fr !important;}
+}
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<div class="slide-wrap">
+
+<!-- ===================== SLIDE 1: COVER ===================== -->
+<div class="slide cover-slide active" id="s1">
+  <div class="cover-accent"></div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 60px;">
+    <div style="font-size:10.5px;font-weight:700;letter-spacing:3px;color:var(--pink);text-transform:uppercase;margin-bottom:10px;">Socialbrand 1980 × 2bShine</div>
+    <div style="display:inline-block;background:var(--pink);color:white;font-size:10.5px;font-weight:600;padding:4px 16px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;margin-bottom:20px;width:fit-content;">Q2 2026 · Integrated Campaign Strategy · April–Juni</div>
+    <div style="font-family:'Playfair Display',serif;font-size:46px;font-weight:700;color:var(--dark);line-height:1.05;margin-bottom:14px;">Shine In<br><span style="color:var(--pink);">Your Own Skin</span></div>
+    <div style="max-width:460px;font-size:13.5px;color:var(--mid);line-height:1.75;margin-bottom:32px;">Strategi marketing terintegrasi untuk <strong style="color:var(--dark);">2bShine</strong> — membangun brand awareness & meningkatkan penjualan Shopee secara terukur dalam 3 bulan.</div>
+    <div style="display:flex;gap:0;border:1px solid var(--pink-light);border-radius:14px;overflow:hidden;width:fit-content;">
+      <div style="padding:18px 28px;border-right:1px solid var(--pink-light);"><div class="cover-stat-num">Rp 45jt</div><div class="cover-stat-label">Total Budget</div></div>
+      <div style="padding:18px 28px;border-right:1px solid var(--pink-light);"><div class="cover-stat-num">3 Bulan</div><div class="cover-stat-label">Durasi Campaign</div></div>
+      <div style="padding:18px 28px;border-right:1px solid var(--pink-light);"><div class="cover-stat-num">700+</div><div class="cover-stat-label">Target Orders/Bln 3</div></div>
+      <div style="padding:18px 28px;"><div class="cover-stat-num">3–3.5x</div><div class="cover-stat-label">Target ROAS</div></div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:20px;right:44px;font-size:9.5px;color:var(--light);">Confidential · 2bShine × Socialbrand 1980 · 2026</div>
+</div>
+
+<!-- ===================== SLIDE 2: SITUASI ===================== -->
+<div class="slide" id="s2">
+  <div class="s-header"><span class="s-label">Situasi</span><div class="s-divider"></div><span class="s-num">02</span></div>
+  <div class="s-body">
+    <div class="t-lg" style="margin-bottom:16px;">Tantangan &amp; <span class="t-pink">Peluang</span></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px;">
+      <div class="prob-card"><div style="font-size:24px;margin-bottom:10px;">😕</div><div style="font-size:13px;font-weight:700;color:var(--dark);margin-bottom:6px;">Brand Awareness Rendah</div><div style="font-size:12px;color:var(--mid);line-height:1.6;">Bersaing dengan Skintific & Somethinc yang sudah punya nama besar — 2bShine belum punya top-of-mind awareness</div></div>
+      <div class="prob-card"><div style="font-size:24px;margin-bottom:10px;">📉</div><div style="font-size:13px;font-weight:700;color:var(--dark);margin-bottom:6px;">Konversi Shopee Belum Optimal</div><div style="font-size:12px;color:var(--mid);line-height:1.6;">Traffic masih organik & sporadis. Belum ada sistem retargeting terstruktur untuk potential buyers</div></div>
+      <div class="prob-card"><div style="font-size:24px;margin-bottom:10px;">📢</div><div style="font-size:13px;font-weight:700;color:var(--dark);margin-bottom:6px;">Konten Belum Terstruktur</div><div style="font-size:12px;color:var(--mid);line-height:1.6;">Belum ada funnel konten yang jelas dari awareness sampai closing — tiap platform berdiri sendiri</div></div>
+    </div>
+    <div style="background:var(--pink-pale);border:1px solid var(--pink-light);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:18px;">
+      <div style="font-size:30px;flex-shrink:0;">🚀</div>
+      <div><div style="font-size:13px;font-weight:700;color:var(--pink-dark);margin-bottom:5px;">Peluang Besar yang Belum Dieksploitasi</div><div style="font-size:12.5px;color:var(--mid);line-height:1.7;">Pasar skincare lokal Indonesia tumbuh <strong style="color:var(--dark);">12–18% YoY</strong>. Wanita 18–30 aktif di TikTok & Instagram, mencari brand yang <em>educate</em> bukan sekadar jualan. 2bShine punya ingredient kuat dan positioning yang tepat — tinggal dieksekusi dengan sistem yang benar.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 3: TARGET PERSONA ===================== -->
+<div class="slide" id="s3">
+  <div class="s-header"><span class="s-label">Target Market</span><div class="s-divider"></div><span class="s-num">03</span></div>
+  <div class="s-body">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;">
+      <div class="t-lg" style="font-size:22px;">3 Persona <span class="t-pink">Target Audiens</span></div>
+      <div style="font-size:11px;color:var(--light);">Wanita 18–30 · Aktif di TikTok & IG · Peduli kulit & ingredient</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;flex:1;">
+
+      <!-- PERSONA 1 -->
+      <div class="persona-card">
+        <div class="persona-header" style="background:#FEF4F5;">
+          <div class="persona-avatar" style="background:#FCDEE3;">🎓</div>
+          <div><div class="persona-name">"Kirana"</div><div class="persona-role" style="color:var(--pink-dark);">The Curious Explorer · 18–22 thn</div></div>
+        </div>
+        <div class="persona-body">
+          <div class="persona-row"><span class="persona-row-label">Status</span><span class="persona-row-val">Mahasiswi / fresh grad, kost di kota</span></div>
+          <div class="persona-row"><span class="persona-row-label">Income</span><span class="persona-row-val">Rp 300K–1,5jt/bln (uang jajan)</span></div>
+          <div class="persona-row"><span class="persona-row-label">Concern</span><span class="persona-row-val">Jerawat aktif, kulit kusam, tidak tahu harus mulai dari mana</span></div>
+          <div class="persona-row"><span class="persona-row-label">Platform</span><span class="persona-row-val">TikTok 4–6 jam/hari, IG sesekali, Shopee sering scroll</span></div>
+          <div class="persona-row"><span class="persona-row-label">Trigger beli</span><span class="persona-row-val">Viral di FYP, harga Rp 50–150K, banyak review KOL</span></div>
+          <div class="persona-why" style="background:#FEF4F5;"><strong style="color:var(--pink-dark);">Kenapa 2bShine?</strong><br>Harga accessible, konten edukatif TikTok membantu dia paham kulit — bukan sekadar promosi. Dia beli kalau KOL yang dia follow sudah pakai.</div>
+        </div>
+      </div>
+
+      <!-- PERSONA 2 -->
+      <div class="persona-card">
+        <div class="persona-header" style="background:#FFF8F0;">
+          <div class="persona-avatar" style="background:#FAE8D0;">💼</div>
+          <div><div class="persona-name">"Dilla"</div><div class="persona-role" style="color:var(--orange);">The Working Glow · 23–27 thn</div></div>
+        </div>
+        <div class="persona-body">
+          <div class="persona-row"><span class="persona-row-label">Status</span><span class="persona-row-val">Karyawan 1–3 tahun, punya penghasilan sendiri</span></div>
+          <div class="persona-row"><span class="persona-row-label">Income</span><span class="persona-row-val">Rp 3–6jt/bln (mulai investasi di diri sendiri)</span></div>
+          <div class="persona-row"><span class="persona-row-label">Concern</span><span class="persona-row-val">Skin barrier rusak akibat stress, dark spots, tekstur tidak rata</span></div>
+          <div class="persona-row"><span class="persona-row-label">Platform</span><span class="persona-row-val">IG 2–3 jam/hari, TikTok untuk hiburan, Shopee sebelum tidur</span></div>
+          <div class="persona-row"><span class="persona-row-label">Trigger beli</span><span class="persona-row-val">Ingredient claim jelas, before-after realistis, packaging rapi</span></div>
+          <div class="persona-why" style="background:#FFF8F0;"><strong style="color:var(--orange);">Kenapa 2bShine?</strong><br>Dia butuh brand yang <em>science-based</em> tapi tidak terlalu technical. Konten edukasi 2bShine yang soft & relatable cocok — dia research dulu sebelum beli, dan 2bShine memberikan alasan yang valid.</div>
+        </div>
+      </div>
+
+      <!-- PERSONA 3 -->
+      <div class="persona-card">
+        <div class="persona-header" style="background:#F3F0FF;">
+          <div class="persona-avatar" style="background:#E2D9F8;">🔬</div>
+          <div><div class="persona-name">"Rena"</div><div class="persona-role" style="color:var(--purple);">The Ingredient Hunter · 25–30 thn</div></div>
+        </div>
+        <div class="persona-body">
+          <div class="persona-row"><span class="persona-row-label">Status</span><span class="persona-row-val">Profesional mapan / mama muda, sudah settle</span></div>
+          <div class="persona-row"><span class="persona-row-label">Income</span><span class="persona-row-val">Rp 6–12jt+/bln (quality over price)</span></div>
+          <div class="persona-row"><span class="persona-row-label">Concern</span><span class="persona-row-val">Hyperpigmentasi, anti-aging dini, mau upgrade skincare routine</span></div>
+          <div class="persona-row"><span class="persona-row-label">Platform</span><span class="persona-row-val">IG primary, YouTube review panjang, TikTok sesekali</span></div>
+          <div class="persona-row"><span class="persona-row-label">Trigger beli</span><span class="persona-row-val">Kombinasi ingredient yang powerful, no-gimmick, brand yang bisa dipercaya</span></div>
+          <div class="persona-why" style="background:#F3F0FF;"><strong style="color:var(--purple);">Kenapa 2bShine?</strong><br>Niacinamide + Cysteamine adalah kombinasi yang jarang ada di brand lokal. Dia cari produk dengan eficacy nyata — dan 2bShine memberikan itu tanpa hype berlebihan.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 4: TARGET GEOGRAPHY ===================== -->
+<div class="slide" id="s4">
+  <div class="s-header"><span class="s-label">Target Market</span><div class="s-divider"></div><span class="s-num">04</span></div>
+  <div class="s-body">
+    <div style="display:flex;align-items:baseline;gap:14px;margin-bottom:14px;">
+      <div class="t-lg" style="font-size:22px;">Prioritas <span class="t-pink">Geografis</span></div>
+      <div style="font-size:11px;color:var(--light);">Indonesia · Berbasis data Shopee + Meta penetrasi skincare</div>
+    </div>
+    <div class="two-col" style="gap:16px;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+
+        <div class="geo-tier a">
+          <span class="geo-budget-badge">55% budget Meta</span>
+          <div class="geo-tier-label">Prioritas A — Primary Target</div>
+          <div class="geo-cities">Jabodetabek · Surabaya · Bandung</div>
+          <div class="geo-reason">Penetrasi Shopee & Meta terbesar di Indonesia. Purchasing power tertinggi, infrastruktur pengiriman J&T/Sicepat H+1. Target Kirana & Dilla terbanyak ada di sini. Kompetitor juga fokus di sini — 2bShine harus hadir kuat.</div>
+        </div>
+
+        <div class="geo-tier b">
+          <span class="geo-budget-badge">35% budget Meta</span>
+          <div class="geo-tier-label">Prioritas B — Secondary Target</div>
+          <div class="geo-cities">Medan · Semarang · Yogyakarta · Makassar · Denpasar</div>
+          <div class="geo-reason">Growing middle class, awareness skincare lokal meningkat pesat. Yogya & Semarang punya populasi mahasiswi besar (Kirana). Medan & Makassar hub regional dengan spending yang terus naik. Persaingan lebih longgar dari Jakarta.</div>
+        </div>
+
+        <div class="geo-tier c">
+          <span class="geo-budget-badge">10% budget Meta</span>
+          <div class="geo-tier-label">Prioritas C — Emerging & Lookalike</div>
+          <div class="geo-cities">Palembang · Pekanbaru · Balikpapan · Samarinda · Banjarmasin</div>
+          <div class="geo-reason">Shopee penetrasi meningkat, potensi KOL lokal yang belum ter-tapping kompetitor. Dipakai untuk Lookalike Audience expansion di bulan 2–3 ketika winning audiences sudah terbentuk.</div>
+        </div>
+
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <div style="background:var(--pink-pale);border-radius:12px;padding:16px 18px;border:1px solid var(--pink-light);">
+          <div style="font-size:12px;font-weight:700;color:var(--pink-dark);margin-bottom:10px;">📊 Kenapa Difokuskan di Kota Besar?</div>
+          <div style="display:flex;flex-direction:column;gap:7px;">
+            <div style="display:flex;gap:10px;font-size:11.5px;color:var(--mid);"><span style="color:var(--pink-dark);font-weight:700;">01</span><span><strong style="color:var(--dark);">Shopee penetrasi:</strong> 70% GMV Shopee skincare berasal dari Jawa — terutama Jabodetabek + Surabaya</span></div>
+            <div style="display:flex;gap:10px;font-size:11.5px;color:var(--mid);"><span style="color:var(--pink-dark);font-weight:700;">02</span><span><strong style="color:var(--dark);">Meta CPC lebih efisien:</strong> CPM di kota tier 1 memang lebih mahal, tapi conversion rate-nya 2–3x lebih tinggi</span></div>
+            <div style="display:flex;gap:10px;font-size:11.5px;color:var(--mid);"><span style="color:var(--pink-dark);font-weight:700;">03</span><span><strong style="color:var(--dark);">KOL TikTok:</strong> Nano KOL di kota besar punya audiens yang lebih tersegmentasi & purchasing intent lebih tinggi</span></div>
+            <div style="display:flex;gap:10px;font-size:11.5px;color:var(--mid);"><span style="color:var(--pink-dark);font-weight:700;">04</span><span><strong style="color:var(--dark);">Word of mouth:</strong> Trendsetter di Jakarta & Bandung men-drive awareness nasional — satu viral di sini bisa menyebar ke seluruh Indonesia</span></div>
+          </div>
+        </div>
+
+        <div style="background:var(--cream);border-radius:12px;padding:14px 18px;border:1px solid var(--pink-light);">
+          <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:8px;">🗺️ Strategi TikTok KOL per Region</div>
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <div style="font-size:11.5px;color:var(--mid);display:flex;justify-content:space-between;"><span><strong style="color:var(--dark);">Jakarta + Jabodetabek</strong></span><span>50% KOL budget</span></div>
+            <div style="font-size:11.5px;color:var(--mid);display:flex;justify-content:space-between;"><span><strong style="color:var(--dark);">Surabaya + Bandung</strong></span><span>25% KOL budget</span></div>
+            <div style="font-size:11.5px;color:var(--mid);display:flex;justify-content:space-between;"><span><strong style="color:var(--dark);">Medan + Yogya + Makassar</strong></span><span>15% KOL budget</span></div>
+            <div style="font-size:11.5px;color:var(--mid);display:flex;justify-content:space-between;"><span><strong style="color:var(--dark);">Kota lain (emerging)</strong></span><span>10% KOL budget</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 5: CAMPAIGN OVERVIEW ===================== -->
+<div class="slide" id="s5">
+  <div class="s-header"><span class="s-label">Campaign Overview</span><div class="s-divider"></div><span class="s-num">05</span></div>
+  <div class="s-body">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px;">
+      <div><div class="t-lg">Target <span class="t-pink">Q2 2026</span></div><div style="font-size:12px;color:var(--mid);margin-top:4px;">Budget Rp 45.000.000 · April – Juni 2026 · 3 Bulan</div></div>
+      <div style="background:var(--pink-pale);border:1px solid var(--pink-light);border-radius:10px;padding:8px 16px;text-align:center;"><div style="font-size:10.5px;font-weight:700;color:var(--pink);text-transform:uppercase;letter-spacing:1px;">Campaign</div><div style="font-size:13px;font-weight:700;color:var(--dark);">Shine In Your Own Skin</div></div>
+    </div>
+    <div class="metric-row" style="margin-bottom:14px;">
+      <div class="metric-card featured"><div class="metric-num">700+</div><div class="metric-label">Orders/Bulan (Bln 3)</div><div class="metric-sub">Ramp-up dari ~300 di bulan 1</div></div>
+      <div class="metric-card"><div class="metric-num">3–3.5x</div><div class="metric-label">Target ROAS</div><div class="metric-sub">Blended semua channel</div></div>
+      <div class="metric-card"><div class="metric-num">100–130</div><div class="metric-label">KOL Aktif</div><div class="metric-sub">Nano + Micro + Mid-tier</div></div>
+      <div class="metric-card"><div class="metric-num sm">+5–12K</div><div class="metric-label">TikTok Followers</div><div class="metric-sub">Organic + boosted content</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+      <div class="card" style="display:flex;align-items:center;gap:14px;"><div style="font-size:26px;">📱</div><div><div style="font-size:14px;font-weight:700;color:var(--dark);">200–260 UGC Videos</div><div style="font-size:11px;color:var(--mid);margin-top:2px;">Dari TikTok Affiliate KOL</div></div></div>
+      <div class="card" style="display:flex;align-items:center;gap:14px;"><div style="font-size:26px;">📈</div><div><div style="font-size:14px;font-weight:700;color:var(--dark);">+25–40% IG Engagement</div><div style="font-size:11px;color:var(--mid);margin-top:2px;">Peningkatan dari baseline saat ini</div></div></div>
+      <div class="card" style="display:flex;align-items:center;gap:14px;"><div style="font-size:26px;">🛒</div><div><div style="font-size:14px;font-weight:700;color:var(--dark);">1.500–1.800 Total Order</div><div style="font-size:11px;color:var(--mid);margin-top:2px;">Kumulatif 3 bulan, semua channel</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 6: FULL FUNNEL ===================== -->
+<div class="slide" id="s6">
+  <div class="s-header"><span class="s-label">Strategi</span><div class="s-divider"></div><span class="s-num">06</span></div>
+  <div class="s-body">
+    <div class="t-lg" style="margin-bottom:16px;">Full Funnel <span class="t-pink">Strategy</span></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+      <div class="funnel-row" style="background:#FCE8EB;"><div style="width:36px;height:36px;border-radius:50%;background:#F7C5CC;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📣</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:#C4616F;">AWARENESS</div><div style="font-size:11.5px;color:var(--mid);margin-top:2px;">TikTok Affiliate (100–130 KOL) · IG Reels Organic · Konten Edukasi</div></div><div style="font-size:11.5px;color:var(--mid);text-align:right;line-height:1.6;">Kenalkan brand · Reach luas<br><strong>Target: Kirana</strong> via TikTok viral</div></div>
+      <div style="text-align:center;color:var(--pink-light);font-size:18px;">↓</div>
+      <div class="funnel-row" style="background:#FDF2EC;"><div style="width:36px;height:36px;border-radius:50%;background:#FAE0C8;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">💡</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--orange);">CONSIDERATION</div><div style="font-size:11.5px;color:var(--mid);margin-top:2px;">Meta Ads Traffic · IG Edukasi Carousel · Testimoni Real User</div></div><div style="font-size:11.5px;color:var(--mid);text-align:right;line-height:1.6;">Edukasi ingredient · Bangun trust<br><strong>Target: Dilla</strong> via IG + Meta</div></div>
+      <div style="text-align:center;color:var(--pink-light);font-size:18px;">↓</div>
+      <div class="funnel-row" style="background:#F0F6EF;"><div style="width:36px;height:36px;border-radius:50%;background:#D4EBD1;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🛒</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--sage);">CONVERSION</div><div style="font-size:11.5px;color:var(--mid);margin-top:2px;">Meta CPAS Shopee · Shopee Internal Ads · Flash Sale Konten</div></div><div style="font-size:11.5px;color:var(--mid);text-align:right;line-height:1.6;">Push ke pembelian · 700+ order/bln<br><strong>Semua persona</strong> — retarget CPAS</div></div>
+      <div style="text-align:center;color:var(--pink-light);font-size:18px;">↓</div>
+      <div class="funnel-row" style="background:#EEF3FF;"><div style="width:36px;height:36px;border-radius:50%;background:#C8D8F5;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🔁</div><div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--blue);">RETENTION</div><div style="font-size:11.5px;color:var(--mid);margin-top:2px;">CPAS Retargeting · Konten Lanjutan · KOL Series</div></div><div style="font-size:11.5px;color:var(--mid);text-align:right;line-height:1.6;">Repeat buyer · Brand loyalty<br><strong>Target: Rena</strong> jadi loyal customer</div></div>
+    </div>
+    <div style="background:var(--pink-pale);border-radius:10px;padding:10px 18px;font-size:12px;color:var(--mid);text-align:center;"><strong style="color:var(--pink-dark);">Customer Journey:</strong>&nbsp; TikTok KOL viral &nbsp;→&nbsp; IG explore &nbsp;→&nbsp; Shopee product page &nbsp;→&nbsp; Meta CPAS retarget &nbsp;→&nbsp; <strong style="color:var(--pink-dark);">PURCHASE</strong></div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 7: META ADS ===================== -->
+<div class="slide" id="s7">
+  <div class="s-header"><span class="s-label">Meta Ads</span><div class="s-divider"></div><span class="s-num">07</span></div>
+  <div class="s-body">
+    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:14px;">
+      <div class="t-lg" style="font-size:22px;">Meta Ads — <span class="t-pink">CPAS Shopee</span></div>
+      <div style="font-size:11.5px;color:var(--mid);font-weight:500;">CBO · 3 Ad Sets · Budget Rp 15.750.000 · ~Rp 175.000/hari</div>
+    </div>
+    <div class="target-grid" style="margin-bottom:14px;">
+      <div class="target-card cold">
+        <div class="target-label">Cold Audience</div>
+        <div class="target-pct">40%</div>
+        <div style="font-size:11px;font-weight:600;color:var(--blue);margin-bottom:5px;">Interest + Behavior Targeting</div>
+        <div class="target-desc">Skincare · K-beauty · Somethinc · Skintific<br>Wanita 18–30 · Shopee frequent buyers<br><strong>Persona: Kirana & Dilla</strong></div>
+      </div>
+      <div class="target-card warm">
+        <div class="target-label">Warm Audience</div>
+        <div class="target-pct">35%</div>
+        <div style="font-size:11px;font-weight:600;color:var(--orange);margin-bottom:5px;">Engagement Retargeting</div>
+        <div class="target-desc">IG/FB engagers 60 hari · Video viewers 75%<br>Lookalike 1–3% dari buyers<br><strong>Persona: Dilla & Rena</strong></div>
+      </div>
+      <div class="target-card hot">
+        <div class="target-label">Hot — Retarget</div>
+        <div class="target-pct">25%</div>
+        <div style="font-size:11px;font-weight:600;color:var(--pink-dark);margin-bottom:5px;">CPAS Cart Abandoner</div>
+        <div class="target-desc">Shopee cart abandoners · Product page visitors<br>IG/FB profile visitors 30 hari<br><strong>Persona: Semua (high intent)</strong></div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--mid);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Benchmark & Target</div>
+    <div style="display:flex;gap:10px;">
+      <div class="bm-pill"><div class="bm-val">1.5%+</div><div class="bm-label">CTR</div></div>
+      <div class="bm-pill"><div class="bm-val">&lt; Rp 1.500</div><div class="bm-label">CPC</div></div>
+      <div class="bm-pill"><div class="bm-val">3%</div><div class="bm-label">Conv. Rate</div></div>
+      <div class="bm-pill"><div class="bm-val">2.5x+</div><div class="bm-label">ROAS Bln 1</div></div>
+      <div class="bm-pill"><div class="bm-val">3x+</div><div class="bm-label">ROAS Bln 3</div></div>
+      <div class="bm-pill"><div class="bm-val">&lt; Rp 25K</div><div class="bm-label">CPM</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 8: TIKTOK AFFILIATE ===================== -->
+<div class="slide" id="s8">
+  <div class="s-header"><span class="s-label">TikTok Affiliate</span><div class="s-divider"></div><span class="s-num">08</span></div>
+  <div class="s-body two-col">
+    <div>
+      <div class="t-lg" style="font-size:20px;margin-bottom:4px;">Sistem <span class="t-pink">100–130 KOL</span></div>
+      <div style="font-size:11.5px;color:var(--mid);margin-bottom:13px;">Tier structure · Komisi berbasis performa · Budget Rp 11.250.000</div>
+      <table class="data-table" style="margin-bottom:13px;">
+        <tr><th>Tier</th><th>Followers</th><th>Jumlah</th><th>Fee</th><th>Komisi</th></tr>
+        <tr><td><strong>Nano</strong></td><td>1K–10K</td><td>80–100</td><td>Produk only</td><td>10–15%</td></tr>
+        <tr><td><strong>Micro</strong></td><td>10K–100K</td><td>20–25</td><td>Produk + Rp 50–200K</td><td>12–18%</td></tr>
+        <tr><td><strong>Mid-tier</strong></td><td>100K–500K</td><td>3–5</td><td>Produk + Rp 500K–1jt</td><td>15–20%</td></tr>
+      </table>
+      <div style="background:var(--pink-pale);border-radius:10px;padding:12px 15px;">
+        <div style="font-size:11.5px;font-weight:700;color:var(--pink-dark);margin-bottom:6px;">💡 Multiplier Effect</div>
+        <div style="font-size:11.5px;color:var(--mid);line-height:1.75;">1 video viral (500K views)<br>→ 7.500 klik ke Shopee (1.5% CTR)<br>→ 225 order (3% CR)<br>→ <strong style="color:var(--dark);">Rp 20jt revenue</strong> dari 1 video gratis</div>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Top 5 Hook Konten High-Converting</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="hook-item"><div class="hook-num">1</div><div><div class="hook-title">"POV: Kulit kusam padahal rajin skincare"</div><div class="hook-sub">Relatable · CTR tinggi · Viral di audiens target</div></div></div>
+        <div class="hook-item"><div class="hook-num">2</div><div><div class="hook-title">"Dermatologist bilang ini bahan aktif paling worth it"</div><div class="hook-sub">Authority · Edukasi · Viral potential tinggi</div></div></div>
+        <div class="hook-item"><div class="hook-num">3</div><div><div class="hook-title">"Challenge pakai 2bShine 30 hari tanpa skincare lain"</div><div class="hook-sub">Progress video · Completion rate tinggi</div></div></div>
+        <div class="hook-item"><div class="hook-num">4</div><div><div class="hook-title">"Beli skincare Rp 30rb vs Rp 300rb — bedanya apa?"</div><div class="hook-sub">Perbandingan · Value positioning · Engaging</div></div></div>
+        <div class="hook-item"><div class="hook-num">5</div><div><div class="hook-title">"POV: Temen nanya pakai skincare apa sampe glowing"</div><div class="hook-sub">Aspirational · Natural endorsement</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 9: CONTENT ROADMAP ===================== -->
+<div class="slide" id="s9">
+  <div class="s-header"><span class="s-label">Content Strategy</span><div class="s-divider"></div><span class="s-num">09</span></div>
+  <div class="s-body">
+    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:14px;">
+      <div class="t-lg" style="font-size:20px;">Content <span class="t-pink">Roadmap</span></div>
+      <div style="font-size:11px;color:var(--light);">4 pillar · 3 bulan · Multi-platform</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div class="pillar-card"><div class="pillar-pct" style="color:var(--pink-dark);">30%</div><div class="pillar-name">Edukasi Ingredient</div><div class="pillar-desc">TikTok, IG Carousel · Trust & authority · Niacinamide, Cysteamine</div></div>
+      <div class="pillar-card"><div class="pillar-pct" style="color:var(--orange);">30%</div><div class="pillar-name">Problem-Solution</div><div class="pillar-desc">TikTok, IG Reels · Relatable & awareness · Real skin concerns</div></div>
+      <div class="pillar-card"><div class="pillar-pct" style="color:var(--sage);">25%</div><div class="pillar-name">Social Proof</div><div class="pillar-desc">IG Feed, Meta Ads · Konversi & credibility · Review & testimoni</div></div>
+      <div class="pillar-card"><div class="pillar-pct" style="color:var(--purple);">15%</div><div class="pillar-name">Behind The Brand</div><div class="pillar-desc">IG Stories, TikTok · Loyalty & community · Brand authenticity</div></div>
+    </div>
+    <div class="timeline">
+      <div class="t-month">
+        <div class="t-month-label">Bulan 1 · April</div>
+        <div class="t-month-title" style="color:var(--pink-dark);">AWARENESS</div>
+        <div class="t-item">"5 tanda skin barrier rusak"</div>
+        <div class="t-item">"Bahan aktif untuk kulit kusam"</div>
+        <div class="t-item">UGC Ads · Meta testing start</div>
+        <div class="t-item">80 nano KOL onboard</div>
+        <div class="t-item" style="color:var(--pink-dark);font-weight:600;">Target: 280–400 orders</div>
+      </div>
+      <div class="t-month">
+        <div class="t-month-label">Bulan 2 · Mei</div>
+        <div class="t-month-title" style="color:var(--orange);">CONSIDERATION</div>
+        <div class="t-item">"30 hari challenge" series</div>
+        <div class="t-item">"Dermatologist reaction" TikTok</div>
+        <div class="t-item">Testimonial ads · Scale winning</div>
+        <div class="t-item">+30 micro KOL · Boost top content</div>
+        <div class="t-item" style="color:var(--orange);font-weight:600;">Target: 500–610 orders</div>
+      </div>
+      <div class="t-month">
+        <div class="t-month-label">Bulan 3 · Juni</div>
+        <div class="t-month-title" style="color:var(--sage);">CONVERSION</div>
+        <div class="t-item">Flash sale & bundle promo</div>
+        <div class="t-item">"Hasil 90 hari" honest review</div>
+        <div class="t-item">Retarget hot audience CPAS</div>
+        <div class="t-item">Affiliate challenge + bonus GMV</div>
+        <div class="t-item" style="color:var(--sage);font-weight:600;">Target: 680–800 orders</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 10: BUDGET ===================== -->
+<div class="slide" id="s10">
+  <div class="s-header"><span class="s-label">Budget</span><div class="s-divider"></div><span class="s-num">10</span></div>
+  <div class="s-body two-col">
+    <div style="display:flex;flex-direction:column;justify-content:center;">
+      <div class="t-lg" style="font-size:22px;margin-bottom:5px;">Alokasi <span class="t-pink">Rp 45jt</span></div>
+      <div style="font-size:12px;color:var(--mid);margin-bottom:20px;">Rp 15.000.000/bulan · April–Juni 2026</div>
+      <div style="margin-bottom:18px;">
+        <div class="budget-bar">
+          <div class="b-seg" style="width:35%;background:#E8909F;"></div>
+          <div class="b-seg" style="width:25%;background:#F0A856;"></div>
+          <div class="b-seg" style="width:20%;background:#8FAF8A;"></div>
+          <div class="b-seg" style="width:15%;background:#7B9FE6;"></div>
+          <div class="b-seg" style="width:5%;background:#C8B8E8;"></div>
+        </div>
+        <div class="budget-legend">
+          <div class="b-legend-item"><div class="b-dot" style="background:#E8909F;"></div>Meta Ads 35%</div>
+          <div class="b-legend-item"><div class="b-dot" style="background:#F0A856;"></div>TikTok Affiliate 25%</div>
+          <div class="b-legend-item"><div class="b-dot" style="background:#8FAF8A;"></div>Content Production 20%</div>
+          <div class="b-legend-item"><div class="b-dot" style="background:#7B9FE6;"></div>Shopee Ads 15%</div>
+          <div class="b-legend-item"><div class="b-dot" style="background:#C8B8E8;"></div>Contingency 5%</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;justify-content:center;">
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;">
+        <div><div style="font-size:13px;font-weight:600;color:var(--dark);">Meta Ads (CPAS Shopee)</div><div style="font-size:10.5px;color:var(--light);margin-top:2px;">Cold + Warm + CPAS Retarget · ~Rp 175K/hari</div></div>
+        <div style="text-align:right"><div style="font-size:14px;font-weight:700;color:var(--pink-dark);">Rp 15.750.000</div><div style="font-size:10px;color:var(--light);">Rp 5.250.000/bln</div></div>
+      </div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;">
+        <div><div style="font-size:13px;font-weight:600;color:var(--dark);">TikTok Affiliate + Boost</div><div style="font-size:10.5px;color:var(--light);margin-top:2px;">KOL seeding + boost konten winner</div></div>
+        <div style="text-align:right"><div style="font-size:14px;font-weight:700;color:var(--orange);">Rp 11.250.000</div><div style="font-size:10px;color:var(--light);">Rp 3.750.000/bln</div></div>
+      </div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;">
+        <div><div style="font-size:13px;font-weight:600;color:var(--dark);">Content Production</div><div style="font-size:10.5px;color:var(--light);margin-top:2px;">UGC video, carousel, reels, still photo</div></div>
+        <div style="text-align:right"><div style="font-size:14px;font-weight:700;color:var(--sage);">Rp 9.000.000</div><div style="font-size:10px;color:var(--light);">Rp 3.000.000/bln</div></div>
+      </div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;">
+        <div><div style="font-size:13px;font-weight:600;color:var(--dark);">Shopee Internal Ads</div><div style="font-size:10.5px;color:var(--light);margin-top:2px;">Keyword ads + voucher boost</div></div>
+        <div style="text-align:right"><div style="font-size:14px;font-weight:700;color:var(--blue);">Rp 6.750.000</div><div style="font-size:10px;color:var(--light);">Rp 2.250.000/bln</div></div>
+      </div>
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--pink-pale);border-color:var(--pink);">
+        <div style="font-size:13px;font-weight:700;color:var(--dark);">Total Campaign Budget</div>
+        <div style="font-size:16px;font-weight:700;color:var(--pink-dark);">Rp 45.000.000</div>
+      </div>
+      <div style="background:#FFF8F0;border:1px solid #F0C898;border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;">
+        <div style="font-size:14px;flex-shrink:0;">⚠️</div>
+        <div style="font-size:11px;color:#8A5A2A;line-height:1.7;"><strong>Catatan:</strong> Budget di atas belum termasuk <strong>komisi KOL (10–18% dari GMV)</strong>. Komisi dibayar dari revenue yang masuk — estimasi total komisi Rp 7–9jt selama 3 bulan. Sudah diperhitungkan dalam ROAS net.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 11: MONTHLY TRAJECTORY ===================== -->
+<div class="slide" id="s11">
+  <div class="s-header"><span class="s-label">Trajectory</span><div class="s-divider"></div><span class="s-num">11</span></div>
+  <div class="s-body">
+    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:18px;">
+      <div class="t-lg" style="font-size:22px;">Monthly <span class="t-pink">Ramp-Up</span></div>
+      <div style="font-size:11.5px;color:var(--mid);">Pertumbuhan bertahap — awareness dulu, conversion menyusul</div>
+    </div>
+    <table class="traj-table" style="margin-bottom:16px;border-collapse:separate;border-spacing:0;">
+      <thead>
+        <tr style="background:var(--pink-pale);">
+          <th style="color:var(--mid);border-radius:8px 0 0 0;padding:11px 16px;">Bulan</th>
+          <th style="color:var(--mid);padding:11px 16px;">Fase</th>
+          <th style="color:var(--mid);padding:11px 16px;">Meta Orders</th>
+          <th style="color:var(--mid);padding:11px 16px;">TikTok Orders</th>
+          <th style="color:var(--mid);padding:11px 16px;">Shopee Orders</th>
+          <th style="color:var(--mid);padding:11px 16px;font-weight:700;">Total Orders</th>
+          <th style="color:var(--mid);border-radius:0 8px 0 0;padding:11px 16px;font-weight:700;">Est. Revenue</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:700;color:var(--dark);">April (Bln 1)</td>
+          <td><span class="traj-badge" style="background:#FCE8EB;color:#C4616F;">Awareness</span></td>
+          <td style="color:var(--mid);">80–120</td><td style="color:var(--mid);">100–150</td><td style="color:var(--mid);">100–130</td>
+          <td style="font-weight:700;color:var(--dark);">280–400</td><td style="font-weight:700;color:var(--dark);">Rp 25–36jt</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:var(--dark);">Mei (Bln 2)</td>
+          <td><span class="traj-badge" style="background:#FFF7EC;color:var(--orange);">Consideration</span></td>
+          <td style="color:var(--mid);">150–180</td><td style="color:var(--mid);">200–250</td><td style="color:var(--mid);">150–180</td>
+          <td style="font-weight:700;color:var(--dark);">500–610</td><td style="font-weight:700;color:var(--dark);">Rp 45–54jt</td>
+        </tr>
+        <tr>
+          <td style="font-weight:700;color:var(--dark);">Juni (Bln 3)</td>
+          <td><span class="traj-badge" style="background:#F3F8F2;color:var(--sage);">Conversion</span></td>
+          <td style="color:var(--mid);">180–200</td><td style="color:var(--mid);">300–350</td><td style="color:var(--mid);">200–250</td>
+          <td style="font-weight:700;color:var(--dark);">680–800</td><td style="font-weight:700;color:var(--dark);">Rp 61–71jt</td>
+        </tr>
+        <tr class="total-row">
+          <td>TOTAL 3 BULAN</td><td></td>
+          <td>410–500</td><td>600–750</td><td>450–560</td>
+          <td style="font-size:15px;">1.460–1.810</td><td style="font-size:15px;">Rp 131–161jt</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="display:flex;gap:12px;">
+      <div style="flex:1;background:#FCE8EB;border-radius:10px;padding:12px 16px;border-left:4px solid var(--pink);"><div style="font-size:11px;font-weight:700;color:var(--pink-dark);margin-bottom:5px;">📌 Bulan 1 — Setup & Testing</div><div style="font-size:11.5px;color:var(--mid);line-height:1.6;">Onboard KOL, test creative Meta. Order masih rendah — ini normal. Fokus pada data.</div></div>
+      <div style="flex:1;background:#FFF7EC;border-radius:10px;padding:12px 16px;border-left:4px solid var(--orange);"><div style="font-size:11px;font-weight:700;color:var(--orange);margin-bottom:5px;">📈 Bulan 2 — Scale Winners</div><div style="font-size:11.5px;color:var(--mid);line-height:1.6;">Scale creative terbaik, boost konten KOL viral. Tambah micro KOL. Volume naik signifikan.</div></div>
+      <div style="flex:1;background:#F3F8F2;border-radius:10px;padding:12px 16px;border-left:4px solid var(--sage);"><div style="font-size:11px;font-weight:700;color:var(--sage);margin-bottom:5px;">🎯 Bulan 3 — Full Conversion</div><div style="font-size:11.5px;color:var(--mid);line-height:1.6;">Flash sale, bundle, retarget. Konten "90 hari" memuncak. Target 700+ orders tercapai.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 12: KPI PROJECTION ===================== -->
+<div class="slide" id="s12">
+  <div class="s-header"><span class="s-label">Proyeksi</span><div class="s-divider"></div><span class="s-num">12</span></div>
+  <div class="s-body">
+    <div class="t-lg" style="margin-bottom:5px;font-size:22px;">Estimasi Hasil <span class="t-pink">3 Bulan</span></div>
+    <div style="font-size:12px;color:var(--mid);margin-bottom:16px;">Berdasarkan benchmark industri skincare lokal Indonesia · Budget total Rp 45.000.000</div>
+    <div class="metric-row" style="margin-bottom:16px;">
+      <div class="metric-card"><div class="metric-num sm">1.460–1.810</div><div class="metric-label">Total Order 3 Bln</div><div class="metric-sub">~Avg 545/bulan</div></div>
+      <div class="metric-card featured"><div class="metric-num sm">Rp 131–161jt</div><div class="metric-label">Estimasi Revenue</div><div class="metric-sub">Gross, sebelum komisi KOL</div></div>
+      <div class="metric-card"><div class="metric-num">3.0–3.5x</div><div class="metric-label">Blended ROAS</div><div class="metric-sub">Gross · Net ~2.8–3.2x</div></div>
+      <div class="metric-card"><div class="metric-num sm">+5–12K</div><div class="metric-label">TikTok Followers</div><div class="metric-sub">Organic + boosted</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+      <div class="ch-card meta">
+        <div class="ch-title" style="color:var(--pink-dark);">📱 Meta Ads · Rp 15.750.000</div>
+        <div class="ch-row"><span class="ch-row-label">Reach</span><span class="ch-row-val">450K–900K orang</span></div>
+        <div class="ch-row"><span class="ch-row-label">Klik ke Shopee</span><span class="ch-row-val">~12.000–14.000</span></div>
+        <div class="ch-row"><span class="ch-row-label">Estimasi Order</span><span class="ch-row-val highlight">390–450 order</span></div>
+        <div class="ch-row"><span class="ch-row-label">Revenue</span><span class="ch-row-val">Rp 35–40jt</span></div>
+        <div class="ch-row"><span class="ch-row-label">ROAS</span><span class="ch-row-val highlight">~2.5–2.7x</span></div>
+      </div>
+      <div class="ch-card tiktok">
+        <div class="ch-title" style="color:var(--orange);">🎵 TikTok Affiliate · 100–130 KOL</div>
+        <div class="ch-row"><span class="ch-row-label">Konten</span><span class="ch-row-val">200–260 video</span></div>
+        <div class="ch-row"><span class="ch-row-label">Total Views</span><span class="ch-row-val">600K–2,6jt</span></div>
+        <div class="ch-row"><span class="ch-row-label">Estimasi Order</span><span class="ch-row-val highlight">600–750 order</span></div>
+        <div class="ch-row"><span class="ch-row-label">Revenue</span><span class="ch-row-val">Rp 53–67jt</span></div>
+        <div class="ch-row"><span class="ch-row-label">ROAS</span><span class="ch-row-val highlight">~5–6x</span></div>
+      </div>
+      <div class="ch-card shopee">
+        <div class="ch-title" style="color:var(--blue);">🛍️ Shopee Ads · Rp 6.750.000</div>
+        <div class="ch-row"><span class="ch-row-label">Impressions</span><span class="ch-row-val">600K–1,2jt</span></div>
+        <div class="ch-row"><span class="ch-row-label">Total Klik</span><span class="ch-row-val">10.000–15.000</span></div>
+        <div class="ch-row"><span class="ch-row-label">Estimasi Order</span><span class="ch-row-val highlight">450–540 order</span></div>
+        <div class="ch-row"><span class="ch-row-label">Revenue</span><span class="ch-row-val">Rp 40–48jt</span></div>
+        <div class="ch-row"><span class="ch-row-label">ROAS</span><span class="ch-row-val highlight">~6.5x</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SLIDE 13: NEXT STEPS ===================== -->
+<div class="slide" id="s13">
+  <div class="s-header"><span class="s-label">Next Steps</span><div class="s-divider"></div><span class="s-num">13</span></div>
+  <div class="s-body two-col">
+    <div>
+      <div class="t-lg" style="font-size:20px;margin-bottom:4px;"><span class="t-pink">Quick Wins</span></div>
+      <div style="font-size:11.5px;color:var(--mid);margin-bottom:13px;">Bulan 1, Minggu 1–2 — langsung eksekusi</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="check-item"><div class="check-icon">✓</div><div class="check-text">Setup Shopee CPAS → aktifkan retargeting sebelum hari pertama iklan</div></div>
+        <div class="check-item"><div class="check-icon">✓</div><div class="check-text">DM 80 nano KOL pertama → target 60 setuju dalam minggu ke-1</div></div>
+        <div class="check-item"><div class="check-icon">✓</div><div class="check-text">Kirim produk batch 1 → minta konten dalam 7 hari dengan brief jelas</div></div>
+        <div class="check-item"><div class="check-icon">✓</div><div class="check-text">Test 5 creative di Meta Ads @ Rp 50K/hari — ukur setiap 3 hari</div></div>
+        <div class="check-item"><div class="check-icon">✓</div><div class="check-text">Shopee Ads untuk "serum brightening lokal" & "serum niacinamide"</div></div>
+        <div class="check-item"><div class="check-icon">✓</div><div class="check-text">Post 3x/minggu di IG: edukasi ingredient, social proof, lifestyle</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;justify-content:center;">
+      <div style="background:linear-gradient(135deg,#FDE8EA,#FDF2F4);border-radius:14px;padding:24px 22px;text-align:center;">
+        <div style="font-size:30px;margin-bottom:9px;">🌟</div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;color:var(--dark);margin-bottom:8px;">"Shine in Your Own Skin"</div>
+        <div style="font-size:12px;color:var(--mid);line-height:1.75;margin-bottom:16px;">2bShine bukan sekadar produk — ini tentang membantu wanita memahami kulitnya sendiri dan bersinar dengan cara yang benar, dengan bahan aktif yang terbukti efektif.</div>
+        <div style="border-top:1px solid var(--pink-light);padding-top:12px;">
+          <div style="font-size:10px;font-weight:700;color:var(--pink);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px;">Siap Eksekusi Bersama?</div>
+          <div style="font-size:11.5px;color:var(--mid);font-weight:500;">Socialbrand 1980 · Strategic Digital Agency</div>
+        </div>
+      </div>
+      <div style="background:var(--cream);border-radius:12px;padding:14px 18px;border:1px solid var(--pink-light);">
+        <div style="font-size:12px;color:var(--mid);line-height:1.9;">📊 Review performa setiap <strong style="color:var(--dark);">2 minggu</strong><br>📈 Scale winning ads di bulan ke-2<br>🔁 Affiliate viral loop aktif bulan ke-3<br>🏆 Target 700+ orders tercapai di Juni</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end slide-wrap -->
+
+<div class="nav">
+  <button class="nav-btn" id="prevBtn" onclick="go(-1)" disabled>‹</button>
+  <div class="dots" id="dots"></div>
+  <div class="slide-counter" id="counter">1 / 13</div>
+  <button class="nav-btn" id="nextBtn" onclick="go(1)">›</button>
+</div>
+
+<script>
+const TOTAL = 13;
+let cur = 1;
+const slides = Array.from({length:TOTAL},(_,i)=>document.getElementById('s'+(i+1)));
+const dotsEl = document.getElementById('dots');
+const counter = document.getElementById('counter');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const bar = document.getElementById('progress-bar');
+for(let i=0;i<TOTAL;i++){const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.onclick=()=>goTo(i+1);dotsEl.appendChild(d);}
+function goTo(n){if(n<1||n>TOTAL||n===cur)return;slides[cur-1].classList.remove('active');slides[cur-1].classList.add('exit');setTimeout(()=>slides[cur-1].classList.remove('exit'),420);cur=n;slides[cur-1].classList.add('active');update();}
+function go(dir){goTo(cur+dir);}
+function update(){counter.textContent=cur+' / '+TOTAL;prevBtn.disabled=cur===1;nextBtn.disabled=cur===TOTAL;bar.style.width=((cur/TOTAL)*100)+'%';document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===cur-1));}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key==='ArrowDown')go(1);if(e.key==='ArrowLeft'||e.key==='ArrowUp')go(-1);});
+
+// Touch swipe support
+let touchStartX=0,touchStartY=0;
+document.querySelector('.slide-wrap').addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;},{passive:true});
+document.querySelector('.slide-wrap').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  const dy=e.changedTouches[0].clientY-touchStartY;
+  if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40){
+    // Only trigger swipe if user isn't scrolling vertically
+    if(dx<0)go(1); else go(-1);
+  }
+},{passive:true});
+
+// Wrap tables in scrollable container on mobile
+if(window.innerWidth<=768){
+  document.querySelectorAll('.traj-table, .data-table').forEach(t=>{
+    if(!t.parentElement.classList.contains('table-scroll')){
+      const wrap=document.createElement('div');
+      wrap.style.cssText='overflow-x:auto;-webkit-overflow-scrolling:touch;width:100%;border-radius:8px;';
+      t.parentNode.insertBefore(wrap,t);
+      wrap.appendChild(t);
+    }
+  });
+}
+
+update();
+</script>
+</body>
+</html>

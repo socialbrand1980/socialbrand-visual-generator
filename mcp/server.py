@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 MCP Server for Socialbrand 1980 — Visual Content Generator
-Powered by fal.ai — generates product photos, campaign visuals,
+Powered by Replicate — generates product photos, campaign visuals,
 product videos, and storyboard frames.
 """
 
@@ -10,6 +10,7 @@ import json
 import base64
 import httpx
 import asyncio
+import replicate
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
@@ -23,11 +24,8 @@ load_dotenv(Path(__file__).parent / ".env")
 
 mcp = FastMCP("socialbrand_photo_mcp")
 
-FAL_API_URL   = "https://fal.run"
-FAL_QUEUE_URL = "https://queue.fal.run"
-FAL_MODEL_URL = "https://api.fal.ai/v1/models"
-BRANDS_DIR    = Path(__file__).parent.parent / "brands"
-_FAL_API_KEY  = os.getenv("FAL_API_KEY", "")
+BRANDS_DIR         = Path(__file__).parent.parent / "brands"
+_REPLICATE_TOKEN   = os.getenv("REPLICATE_API_TOKEN", "")
 
 
 # ─── ENUMS ───
@@ -62,27 +60,25 @@ class VideoAspectRatio(str, Enum):
 # ─── MODEL CATALOGS ───
 
 IMG2IMG_MODELS = {
-    "fal-ai/flux/dev/image-to-image":      "FLUX Dev — fast & balanced (default)",
-    "fal-ai/flux/pro/image-to-image":      "FLUX Pro — higher quality, slower",
-    "fal-ai/flux-realism/image-to-image":  "FLUX Realism — photorealistic output",
-    "fal-ai/flux/schnell/image-to-image":  "FLUX Schnell — fastest, good for drafts",
-    "fal-ai/sdxl/image-to-image":          "SDXL — alternative architecture",
+    "black-forest-labs/flux-1.1-pro":      "FLUX 1.1 Pro — high quality img2img (default)",
+    "black-forest-labs/flux-dev":           "FLUX Dev — balanced quality & speed",
+    "black-forest-labs/flux-schnell":       "FLUX Schnell — fastest, good for drafts",
+    "stability-ai/sdxl":                    "SDXL — alternative architecture",
 }
 
 IMG2VIDEO_MODELS = {
-    "fal-ai/bytedance/seedance/v1/pro/image-to-video":  "Seedance 1.0 Pro — cinematic quality (1080p, recommended)",
-    "fal-ai/bytedance/seedance/v1/lite/image-to-video": "Seedance 1.0 Lite — faster, lighter",
-    "fal-ai/kling-video/v1.6/standard/image-to-video":  "Kling 1.6 Standard — reliable, great motion",
-    "fal-ai/pixverse/v3.5/image-to-video":              "PixVerse v3.5 — stylized, supports style modes",
+    "minimax/video-01-live":                "Minimax Video-01 Live — cinematic motion (default)",
+    "kwaivgi/kling-v1.6-standard":          "Kling 1.6 Standard — reliable, smooth motion",
+    "stability-ai/stable-video-diffusion":  "SVD — Stability AI, subtle/short motion",
 }
 
 TEXT2IMG_MODELS = {
-    "fal-ai/flux/dev":        "FLUX Dev — detailed & creative (default)",
-    "fal-ai/flux/pro":        "FLUX Pro — premium quality",
-    "fal-ai/flux/schnell":    "FLUX Schnell — fastest, good for quick drafts",
-    "fal-ai/nano-banana":     "Nano Banana 2 — Google's state-of-the-art model",
-    "fal-ai/recraft-v3":      "Recraft V3 — excellent for brand & illustration",
-    "fal-ai/ideogram/v2":     "Ideogram V2 — great typography & graphic design",
+    "black-forest-labs/flux-dev":           "FLUX Dev — detailed & creative (default)",
+    "black-forest-labs/flux-1.1-pro":       "FLUX 1.1 Pro — premium quality",
+    "black-forest-labs/flux-schnell":       "FLUX Schnell — fastest drafts",
+    "recraft-ai/recraft-v3":                "Recraft V3 — excellent for brand & illustration",
+    "ideogram-ai/ideogram-v2":              "Ideogram V2 — great typography & graphic design",
+    "google-deepmind/imagen-3":             "Imagen 3 — Google's state-of-the-art model",
 }
 
 
@@ -253,55 +249,49 @@ def _build_storyboard_prompt(scene_desc: str, frame_type: str, platform: str, ex
     return prompt.strip()
 
 
-async def _fal_request(model: str, payload: dict, api_key: str) -> dict:
-    """Submit request to fal.ai queue and poll until complete."""
-    headers = {
-        "Authorization": f"Key {api_key}",
-        "Content-Type": "application/json",
-    }
-    # Video generation can take longer — up to 3 minutes
-    max_polls = 90
-    async with httpx.AsyncClient(timeout=180.0) as client:
-        submit_resp = await client.post(
-            f"{FAL_QUEUE_URL}/{model}",
-            json=payload,
-            headers=headers,
-        )
-        submit_resp.raise_for_status()
-        submit_data = submit_resp.json()
-        request_id = submit_data.get("request_id")
-        if not request_id:
-            raise ValueError(f"No request_id in response: {submit_data}")
+async def _replicate_request(model: str, payload: dict, api_token: str) -> dict:
+    """Call Replicate API and return normalized output dict."""
+    client = replicate.Client(api_token=api_token)
 
-        status_url = f"{FAL_QUEUE_URL}/{model}/requests/{request_id}/status"
-        result_url = f"{FAL_QUEUE_URL}/{model}/requests/{request_id}"
+    # Replicate library is synchronous — run in thread pool to avoid blocking
+    output = await asyncio.to_thread(client.run, model, input=payload)
 
-        for _ in range(max_polls):
-            await asyncio.sleep(2)
-            status_resp = await client.get(status_url, headers=headers)
-            status_resp.raise_for_status()
-            status = status_resp.json().get("status")
-            if status == "COMPLETED":
-                result_resp = await client.get(result_url, headers=headers)
-                result_resp.raise_for_status()
-                return result_resp.json()
-            elif status in ("FAILED", "CANCELLED"):
-                raise RuntimeError(f"fal.ai job {status}: {status_resp.text}")
+    if output is None:
+        return {}
 
-        raise TimeoutError("fal.ai job timed out after 3 minutes")
+    # Normalize output → consistent {"images": [...]} or {"video": {...}} format
+    def _to_url(item) -> str:
+        """Extract URL string from Replicate FileOutput or plain string."""
+        return item.url if hasattr(item, "url") else str(item)
+
+    # List output → multiple images
+    if isinstance(output, list):
+        urls = [_to_url(u) for u in output if u]
+        # Detect video by extension
+        if urls and any(u.split("?")[0].endswith((".mp4", ".mov", ".webm")) for u in urls):
+            return {"video": {"url": urls[0]}, "output": urls}
+        return {"images": [{"url": u} for u in urls], "output": urls}
+
+    # Single output
+    url = _to_url(output)
+    if url.split("?")[0].endswith((".mp4", ".mov", ".webm")):
+        return {"video": {"url": url}, "output": url}
+    return {"images": [{"url": url}], "output": url}
 
 
 def _handle_error(e: Exception) -> str:
     if isinstance(e, FileNotFoundError):
         return f"Error: {e}. Check that the image path is correct."
+    if isinstance(e, replicate.exceptions.ReplicateError):
+        return f"Error: Replicate API error — {e}"
     if isinstance(e, httpx.HTTPStatusError):
         if e.response.status_code == 401:
-            return "Error: Invalid fal.ai API key. Check FAL_API_KEY in mcp/.env"
+            return "Error: Invalid Replicate API token. Check REPLICATE_API_TOKEN in mcp/.env"
         if e.response.status_code == 402:
-            return "Error: Insufficient fal.ai credits. Top up at fal.ai/dashboard/billing"
+            return "Error: Insufficient Replicate credits. Top up at replicate.com/account/billing"
         if e.response.status_code == 429:
             return "Error: Rate limit hit. Wait a moment before retrying."
-        return f"Error: fal.ai API returned {e.response.status_code}: {e.response.text}"
+        return f"Error: Replicate returned {e.response.status_code}: {e.response.text}"
     if isinstance(e, TimeoutError):
         return "Error: Generation timed out. Try again or use a faster model."
     return f"Error: {type(e).__name__}: {e}"
@@ -412,17 +402,6 @@ class ListModelsInput(BaseModel):
             "Use 'all' to see the full catalog with recommended models highlighted."
         )
     )
-    search_fal: bool = Field(
-        default=False,
-        description=(
-            "If True, also queries fal.ai API for ALL available models (live search). "
-            "Default False shows the curated catalog. Set True to discover new/latest models."
-        )
-    )
-    api_key: Optional[str] = Field(
-        default=None,
-        description="fal.ai API key. Leave empty to use key from .env file."
-    )
 
 
 @mcp.tool(
@@ -437,21 +416,17 @@ class ListModelsInput(BaseModel):
 )
 async def list_available_models(params: ListModelsInput) -> str:
     """
-    List available fal.ai models for image, video, and storyboard generation.
+    List available Replicate models for image, video, and storyboard generation.
 
     Returns a curated catalog of recommended models organized by use case.
-    Set search_fal=True to query fal.ai API live for the complete model list.
 
     Args:
         category: 'all', 'image-to-image', 'image-to-video', or 'text-to-image'
-        search_fal: if True, queries fal.ai API for live model discovery
-        api_key: optional, uses .env if not provided
 
     Returns:
         str: JSON catalog of models with descriptions and use case guidance
     """
     cat = params.category.lower()
-
     catalog = {}
 
     if cat in ("all", "image-to-image"):
@@ -475,50 +450,14 @@ async def list_available_models(params: ListModelsInput) -> str:
             "models": TEXT2IMG_MODELS
         }
 
-    result = {"curated_catalog": catalog}
-
-    # Live search from fal.ai API
-    if params.search_fal:
-        api_key = params.api_key or _FAL_API_KEY
-        headers = {}
-        if api_key:
-            headers["Authorization"] = f"Key {api_key}"
-
-        try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                fal_cat = None if cat == "all" else cat
-                params_q = {"limit": 50}
-                if fal_cat and fal_cat != "all":
-                    params_q["category"] = fal_cat
-
-                resp = await client.get(FAL_MODEL_URL, headers=headers, params=params_q)
-                resp.raise_for_status()
-                data = resp.json()
-                models_raw = data.get("models", [])
-
-                live_models = [
-                    {
-                        "id":          m.get("endpoint_id", ""),
-                        "name":        m.get("name", ""),
-                        "category":    m.get("category", ""),
-                        "description": m.get("description", "")[:120] if m.get("description") else "",
-                    }
-                    for m in models_raw
-                ]
-                result["live_fal_models"] = {
-                    "count": len(live_models),
-                    "note": "Live results from fal.ai API. Use endpoint_id as the 'model' parameter.",
-                    "models": live_models
-                }
-        except Exception as e:
-            result["live_fal_models"] = {"error": str(e)}
-
-    result["usage_tip"] = (
-        "Pass any model's endpoint ID as the 'model' parameter in generate_* tools. "
-        "You're not limited to this list — any fal.ai model ID works."
-    )
-
-    return json.dumps(result, indent=2)
+    return json.dumps({
+        "platform":     "Replicate (replicate.com)",
+        "catalog":      catalog,
+        "usage_tip":    (
+            "Pass any model's ID as the 'model' parameter in generate_* tools. "
+            "Browse more models at replicate.com/explore"
+        )
+    }, indent=2)
 
 
 # ── 4. GENERATE PRODUCT PHOTO ────────────────────────────────────────────────
@@ -540,13 +479,13 @@ class GenerateProductPhotoInput(BaseModel):
         description="Photography style preset for the generated photo"
     )
     model: str = Field(
-        default="fal-ai/flux/dev/image-to-image",
+        default="black-forest-labs/flux-1.1-pro",
         description=(
-            "fal.ai model to use. Recommended: "
-            "'fal-ai/flux/dev/image-to-image' (default, balanced), "
-            "'fal-ai/flux/pro/image-to-image' (higher quality), "
-            "'fal-ai/flux-realism/image-to-image' (photorealistic), "
-            "'fal-ai/flux/schnell/image-to-image' (fastest draft). "
+            "Replicate model to use. Recommended: "
+            "'black-forest-labs/flux-1.1-pro' (default, high quality), "
+            "'black-forest-labs/flux-dev' (balanced), "
+            "'black-forest-labs/flux-schnell' (fastest draft), "
+            "'stability-ai/sdxl' (alternative). "
             "Use list_available_models to discover more."
         )
     )
@@ -562,7 +501,7 @@ class GenerateProductPhotoInput(BaseModel):
     )
     api_key: Optional[str] = Field(
         default=None,
-        description="fal.ai API key. Leave empty to use key from .env file."
+        description="Replicate API token. Leave empty to use token from .env file."
     )
 
 
@@ -578,34 +517,37 @@ class GenerateProductPhotoInput(BaseModel):
 )
 async def generate_product_photo(params: GenerateProductPhotoInput) -> str:
     """
-    Generate a professional product photo from a raw product image using fal.ai.
+    Generate a professional product photo from a raw product image using Replicate.
 
     Transforms an existing product photo into a clean, commercial image
     using the specified style and brand context.
     Output saved to brands/{brand_name}/generated/product/.
     """
     try:
-        api_key = params.api_key or _FAL_API_KEY
-        if not api_key:
-            return "Error: No API key found. Add FAL_API_KEY to mcp/.env or pass it as api_key."
+        api_token = params.api_key or _REPLICATE_TOKEN
+        if not api_token:
+            return "Error: No API token found. Add REPLICATE_API_TOKEN to mcp/.env or pass it as api_key."
 
         brand_info = _get_brand_info(params.brand_name)
         prompt = _build_product_prompt(params.style, params.extra_prompt or "", brand_info)
-        image_data_uri = _encode_image(params.product_image_path)
 
-        payload = {
-            "prompt": prompt,
-            "image_url": image_data_uri,
-            "strength": params.strength,
-            "num_images": 1,
-            "enable_safety_checker": False,
-        }
+        # Pass image as open file — Replicate handles upload
+        img_path = Path(params.product_image_path)
+        if not img_path.exists():
+            return f"Error: Image not found: {params.product_image_path}"
 
-        result = await _fal_request(params.model, payload, api_key)
+        with open(img_path, "rb") as img_file:
+            payload = {
+                "prompt":          prompt,
+                "image":           img_file,
+                "prompt_strength": params.strength,
+                "num_outputs":     1,
+            }
+            result = await _replicate_request(params.model, payload, api_token)
 
         images = result.get("images", [])
         if not images:
-            return f"Error: fal.ai returned no images. Full response: {result}"
+            return f"Error: Replicate returned no images. Full response: {result}"
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"{params.brand_name}_product_{timestamp}.jpg"
@@ -652,12 +594,12 @@ class GenerateCampaignPhotoInput(BaseModel):
         description="Target platform: 'Instagram Feed', 'Instagram Story', 'TikTok', 'Facebook Ad', 'Banner'"
     )
     model: str = Field(
-        default="fal-ai/flux/dev/image-to-image",
+        default="black-forest-labs/flux-1.1-pro",
         description=(
-            "fal.ai model to use. Recommended: "
-            "'fal-ai/flux/dev/image-to-image' (default), "
-            "'fal-ai/flux/pro/image-to-image' (premium), "
-            "'fal-ai/flux-realism/image-to-image' (photorealistic). "
+            "Replicate model to use. Recommended: "
+            "'black-forest-labs/flux-1.1-pro' (default, high quality), "
+            "'black-forest-labs/flux-dev' (balanced), "
+            "'stability-ai/sdxl' (alternative). "
             "Use list_available_models to discover more."
         )
     )
@@ -673,7 +615,7 @@ class GenerateCampaignPhotoInput(BaseModel):
     )
     api_key: Optional[str] = Field(
         default=None,
-        description="fal.ai API key. Leave empty to use key from .env file."
+        description="Replicate API token. Leave empty to use token from .env file."
     )
 
 
@@ -689,16 +631,16 @@ class GenerateCampaignPhotoInput(BaseModel):
 )
 async def generate_campaign_photo(params: GenerateCampaignPhotoInput) -> str:
     """
-    Generate a campaign or advertisement photo from a product image using fal.ai.
+    Generate a campaign or advertisement photo from a product image using Replicate.
 
     Combines product photo with brand context and campaign brief to produce
     a polished campaign visual for ads or social media.
     Output saved to brands/{brand_name}/generated/campaign/.
     """
     try:
-        api_key = params.api_key or _FAL_API_KEY
-        if not api_key:
-            return "Error: No API key found. Add FAL_API_KEY to mcp/.env or pass it as api_key."
+        api_token = params.api_key or _REPLICATE_TOKEN
+        if not api_token:
+            return "Error: No API token found. Add REPLICATE_API_TOKEN to mcp/.env or pass it as api_key."
 
         brand_info = _get_brand_info(params.brand_name)
         prompt = _build_campaign_prompt(
@@ -708,21 +650,23 @@ async def generate_campaign_photo(params: GenerateCampaignPhotoInput) -> str:
             params.extra_prompt or "",
             brand_info
         )
-        image_data_uri = _encode_image(params.product_image_path)
 
-        payload = {
-            "prompt": prompt,
-            "image_url": image_data_uri,
-            "strength": params.strength,
-            "num_images": 1,
-            "enable_safety_checker": False,
-        }
+        img_path = Path(params.product_image_path)
+        if not img_path.exists():
+            return f"Error: Image not found: {params.product_image_path}"
 
-        result = await _fal_request(params.model, payload, api_key)
+        with open(img_path, "rb") as img_file:
+            payload = {
+                "prompt":          prompt,
+                "image":           img_file,
+                "prompt_strength": params.strength,
+                "num_outputs":     1,
+            }
+            result = await _replicate_request(params.model, payload, api_token)
 
         images = result.get("images", [])
         if not images:
-            return f"Error: fal.ai returned no images. Full response: {result}"
+            return f"Error: Replicate returned no images. Full response: {result}"
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         platform_slug = params.platform.lower().replace(" ", "_")
@@ -773,13 +717,12 @@ class GenerateVideoInput(BaseModel):
         description="Target platform: 'Instagram Reels', 'TikTok', 'Instagram Story', 'YouTube', 'Facebook'"
     )
     model: str = Field(
-        default="fal-ai/bytedance/seedance/v1/pro/image-to-video",
+        default="minimax/video-01-live",
         description=(
-            "fal.ai image-to-video model. Options: "
-            "'fal-ai/bytedance/seedance/v1/pro/image-to-video' (Seedance Pro, best quality, default), "
-            "'fal-ai/bytedance/seedance/v1/lite/image-to-video' (Seedance Lite, faster), "
-            "'fal-ai/kling-video/v1.6/standard/image-to-video' (Kling 1.6, reliable), "
-            "'fal-ai/pixverse/v3.5/image-to-video' (PixVerse, supports style modes). "
+            "Replicate image-to-video model. Options: "
+            "'minimax/video-01-live' (cinematic motion, default), "
+            "'kwaivgi/kling-v1.6-standard' (reliable, smooth motion), "
+            "'stability-ai/stable-video-diffusion' (subtle motion, SVD). "
             "Use list_available_models to discover more."
         )
     )
@@ -802,7 +745,7 @@ class GenerateVideoInput(BaseModel):
     )
     api_key: Optional[str] = Field(
         default=None,
-        description="fal.ai API key. Leave empty to use key from .env file."
+        description="Replicate API token. Leave empty to use token from .env file."
     )
 
 
@@ -818,18 +761,18 @@ class GenerateVideoInput(BaseModel):
 )
 async def generate_video_from_image(params: GenerateVideoInput) -> str:
     """
-    Animate a product photo into a short video clip using fal.ai image-to-video models.
+    Animate a product photo into a short video clip using Replicate image-to-video models.
 
-    Supports Seedance (ByteDance), Kling, and PixVerse models.
+    Supports Minimax Video-01 Live, Kling, and Stable Video Diffusion.
     Output is saved as MP4 to brands/{brand_name}/generated/video/.
     Great for creating Reels, TikTok product videos, and motion ads.
 
-    Note: Video generation takes 30–90 seconds depending on model and resolution.
+    Note: Video generation takes 30–120 seconds depending on model and resolution.
     """
     try:
-        api_key = params.api_key or _FAL_API_KEY
-        if not api_key:
-            return "Error: No API key found. Add FAL_API_KEY to mcp/.env or pass it as api_key."
+        api_token = params.api_key or _REPLICATE_TOKEN
+        if not api_token:
+            return "Error: No API token found. Add REPLICATE_API_TOKEN to mcp/.env or pass it as api_key."
 
         brand_info = _get_brand_info(params.brand_name)
         prompt = _build_video_prompt(
@@ -839,27 +782,28 @@ async def generate_video_from_image(params: GenerateVideoInput) -> str:
             params.extra_prompt or "",
             brand_info
         )
+
+        img_path = Path(params.product_image_path)
+        if not img_path.exists():
+            return f"Error: Image not found: {params.product_image_path}"
+
         image_data_uri = _encode_image(params.product_image_path)
 
-        # Build payload — core fields common across video models
+        # Replicate video models use image_url (data URI) and vary in params
         payload = {
-            "prompt":       prompt,
-            "image_url":    image_data_uri,
-            "duration":     params.duration,
-            "resolution":   params.resolution,
-            "enable_safety_checker": False,
+            "prompt":    prompt,
+            "image_url": image_data_uri,
         }
 
-        # Add aspect_ratio only when not auto (some models don't accept 'auto')
+        # Add aspect_ratio only when not auto
         if params.aspect_ratio != VideoAspectRatio.AUTO:
             payload["aspect_ratio"] = params.aspect_ratio.value
 
-        result = await _fal_request(params.model, payload, api_key)
+        result = await _replicate_request(params.model, payload, api_token)
 
-        # Video models return {"video": {"url": "..."}} not {"images": [...]}
         video = result.get("video", {})
         if not video or not video.get("url"):
-            return f"Error: fal.ai returned no video. Full response: {result}"
+            return f"Error: Replicate returned no video. Full response: {result}"
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         platform_slug = params.platform.lower().replace(" ", "_")
@@ -867,13 +811,11 @@ async def generate_video_from_image(params: GenerateVideoInput) -> str:
         saved_path = _save_file(params.brand_name, OutputType.VIDEO, video["url"], filename)
 
         return json.dumps({
-            "status":       "success",
-            "saved_to":     saved_path,
-            "prompt_used":  prompt,
-            "model":        params.model,
-            "duration":     params.duration + "s",
-            "resolution":   params.resolution,
-            "tip":          "For smoother motion, try Seedance Pro. For more style, try PixVerse with style modes."
+            "status":      "success",
+            "saved_to":    saved_path,
+            "prompt_used": prompt,
+            "model":       params.model,
+            "tip":         "For cinematic motion try minimax/video-01-live. For smooth motion try kling-v1.6."
         }, indent=2)
 
     except Exception as e:
@@ -927,15 +869,15 @@ class GenerateStoryboardInput(BaseModel):
         )
     )
     model: str = Field(
-        default="fal-ai/flux/dev",
+        default="black-forest-labs/flux-dev",
         description=(
-            "fal.ai text-to-image model. Options: "
-            "'fal-ai/flux/dev' (FLUX Dev, balanced, default), "
-            "'fal-ai/flux/pro' (FLUX Pro, premium quality), "
-            "'fal-ai/flux/schnell' (FLUX Schnell, fastest drafts), "
-            "'fal-ai/nano-banana' (Nano Banana 2, Google's model), "
-            "'fal-ai/recraft-v3' (Recraft V3, great for brand/illustration), "
-            "'fal-ai/ideogram/v2' (Ideogram V2, great typography). "
+            "Replicate text-to-image model. Options: "
+            "'black-forest-labs/flux-dev' (FLUX Dev, balanced, default), "
+            "'black-forest-labs/flux-1.1-pro' (FLUX Pro, premium quality), "
+            "'black-forest-labs/flux-schnell' (FLUX Schnell, fastest drafts), "
+            "'recraft-ai/recraft-v3' (great for brand/illustration), "
+            "'ideogram-ai/ideogram-v2' (great typography & graphic design), "
+            "'google-deepmind/imagen-3' (Google's state-of-the-art). "
             "Use list_available_models to discover more."
         )
     )
@@ -951,7 +893,7 @@ class GenerateStoryboardInput(BaseModel):
     )
     api_key: Optional[str] = Field(
         default=None,
-        description="fal.ai API key. Leave empty to use key from .env file."
+        description="Replicate API token. Leave empty to use token from .env file."
     )
 
 
@@ -967,18 +909,18 @@ class GenerateStoryboardInput(BaseModel):
 )
 async def generate_storyboard_frame(params: GenerateStoryboardInput) -> str:
     """
-    Generate storyboard frames from text descriptions using fal.ai text-to-image models.
+    Generate storyboard frames from text descriptions using Replicate text-to-image models.
 
     No source image needed — generates visual concepts purely from your scene description.
     Great for campaign storyboarding, content planning, and concept visualization.
     Output saved to brands/{brand_name}/generated/storyboard/.
 
-    Supports FLUX, Nano Banana (Google), Recraft, and Ideogram models.
+    Supports FLUX, Recraft, Ideogram, and Imagen 3 models.
     """
     try:
-        api_key = params.api_key or _FAL_API_KEY
-        if not api_key:
-            return "Error: No API key found. Add FAL_API_KEY to mcp/.env or pass it as api_key."
+        api_token = params.api_key or _REPLICATE_TOKEN
+        if not api_token:
+            return "Error: No API token found. Add REPLICATE_API_TOKEN to mcp/.env or pass it as api_key."
 
         brand_info = _get_brand_info(params.brand_name) if params.brand_name else {}
         prompt = _build_storyboard_prompt(
@@ -989,18 +931,26 @@ async def generate_storyboard_frame(params: GenerateStoryboardInput) -> str:
             brand_info
         )
 
+        # Map StoryboardSize → Replicate aspect_ratio
+        size_to_ratio = {
+            "square_hd":       "1:1",
+            "landscape_16_9":  "16:9",
+            "portrait_16_9":   "9:16",
+            "landscape_4_3":   "4:3",
+        }
+        aspect_ratio = size_to_ratio.get(params.image_size.value, "1:1")
+
         payload = {
             "prompt":       prompt,
-            "image_size":   params.image_size.value,
-            "num_images":   params.num_frames,
-            "enable_safety_checker": False,
+            "aspect_ratio": aspect_ratio,
+            "num_outputs":  params.num_frames,
         }
 
-        result = await _fal_request(params.model, payload, api_key)
+        result = await _replicate_request(params.model, payload, api_token)
 
         images = result.get("images", [])
         if not images:
-            return f"Error: fal.ai returned no images. Full response: {result}"
+            return f"Error: Replicate returned no images. Full response: {result}"
 
         saved_paths = []
         brand_save = params.brand_name or "general"
